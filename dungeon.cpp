@@ -4,6 +4,7 @@
 #include <vector>
 #include <stack>
 #include <stdlib.h>
+#include <emscripten.h>
 
 using namespace std;
 
@@ -12,10 +13,10 @@ const int ROOM_COUNT = 8;
 const int ROOM_MAX_WIDTH = 15;
 const int ROOM_MAX_HEIGHT = 10;
 
-void print_map(int map[][SIZE]) {
+void print_map(int** map) {
 	for (int i = 0; i < SIZE; i++) {
 		for (int j = 0; j < SIZE; j++) {
-			auto color = map[i][j] == 0 ? "\033[90m" : ( map[i][j] == 1 ? "\033[97m" : "\033[32m" );
+			auto color = map[i][j] == 0 ? "\033[90m" : ( map[i][j] == 1 ? "\033[97m" : ( map[i][j] == 8 ? "\033[34m" : "\033[32m" ));
 			auto reset = "\033[39m";
 			cout << color << map[i][j] << reset << " ";
 		}
@@ -23,7 +24,7 @@ void print_map(int map[][SIZE]) {
 	}
 }
 
-void place_room(int x, int y, int w, int h, int map[][SIZE]) {
+void place_room(int x, int y, int w, int h, int** map) {
 	for (int i = y; i < y + h; i++) {
 		for (int j = x; j < x + w; j++) {
 			map[i][j] = 1;
@@ -69,26 +70,28 @@ int gen_number(int min, int max) {
 	return rand() % max + min;
 }
 
-int main() {
+EMSCRIPTEN_KEEPALIVE
+int** generate_map() {
 	srand(time(NULL));
 
-	int map[SIZE][SIZE] = {0};
+	int** map;
+	map = new int*[SIZE];
+	for (int i = 0; i < SIZE; i++) {
+		map[i] = new int[SIZE];
+	}
 
 	vector<Room> rooms;
 
 	// Randomly placing rooms
-	for (int i = 0; i < ROOM_COUNT; i++) {
-		while (true) {
-			int x = gen_number(5, SIZE - 5);
-			int y = gen_number(5, SIZE - 5);
-			int w = gen_number(5, ROOM_MAX_WIDTH);
-			int h = gen_number(5, ROOM_MAX_HEIGHT);
-			Room room = {x, y, w, h};
-			if (!overlap_with_exists_rooms(room, rooms) && room_within_map(room)) {
-				rooms.push_back(room);
-				place_room(x, y, w, h, map);
-				break;
-			}
+	while (rooms.size() < ROOM_COUNT) {
+		int x = gen_number(5, SIZE - 5);
+		int y = gen_number(5, SIZE - 5);
+		int w = gen_number(5, ROOM_MAX_WIDTH);
+		int h = gen_number(5, ROOM_MAX_HEIGHT);
+		Room room = {x, y, w, h};
+		if (!overlap_with_exists_rooms(room, rooms) && room_within_map(room)) {
+			rooms.push_back(room);
+			place_room(x, y, w, h, map);
 		}
 	}
 
@@ -97,19 +100,34 @@ int main() {
 		for (int j = 0; j < rooms.size(); j++) {
 			if (i != j) {
 				// Horizontal paths
-				if (rooms[i].y > rooms[j].y && rooms[i].y < (rooms[j].y + rooms[j].h)) {
-					int y = rooms[i].y + 1;
+				if (between(rooms[i].y, rooms[j].y, rooms[j].y + rooms[j].h)) {
+					int y = rooms[i].y + rooms[i].h / 2;
 					for (int x = min(rooms[i].x, rooms[j].x); x < max(rooms[i].x, rooms[j].x); x++) {
-						map[y][x] = 1;
+						if (map[y-1][x] != 1 && map[y+1][x] != 1) {
+							map[y][x] = 1;
+						}
 					}
 				}
 
 				// Vertical paths
-				if (rooms[i].x > rooms[j].x && rooms[i].x < (rooms[j].x + rooms[j].w)) {
-					int x = rooms[i].x + 1;
+				if (between(rooms[i].x, rooms[j].x, rooms[j].x + rooms[j].w)) {
+					int x = rooms[i].x + rooms[i].w / 2;
 					for (int y = min(rooms[i].y, rooms[j].y); y < max(rooms[i].y, rooms[j].y); y++) {
-						map[y][x] = 1;
+						if (map[y][x+1] != 1 && map[y][x-1] != 1) {
+							map[y][x] = 1;
+						}
 					}
+				}
+			}
+		}
+	}
+
+	// Door generating
+	for (int row = 1; row < SIZE-1; row++) {
+		for (int col = 1; col < SIZE-1; col++) {
+			if (map[row][col] == 1 && map[row-1][col] == 1 && map[row+1][col] == 1 && map[row][col+1] == 1 && map[row][col-1] == 1) {
+				if (map[row-1][col-1] == 0 || map[row-1][col+1] == 0 || map[row+1][col-1] == 0 || map[row+1][col+1] == 0) {
+					map[row][col] = 8;
 				}
 			}
 		}
@@ -124,6 +142,12 @@ int main() {
 	map[in_y][in_x] = 2;
 	map[out_y][out_x] = 3;
 
+	return map;
+}
+
+int main() {
+
+	int** map = generate_map();
 	print_map(map);
 
 	return 0;
