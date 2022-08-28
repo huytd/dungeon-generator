@@ -42,6 +42,10 @@ const overlap_with_exists_rooms = (room, rooms) => {
 	return false;
 };
 
+const point_within_room = (point, room) => {
+	return overlap({ x: point.x, y: point.y, w: 1, h: 1 }, room);
+};
+
 const map = Array(SIZE).fill(0).map(_ => Array(SIZE).fill(0));
 const rooms = [];
 
@@ -59,25 +63,43 @@ while (rooms.length < ROOM_COUNT) {
 }
 
 // Build corridors
+const connectedList = [];
 for (let i = 0; i < rooms.length; i++) {
 	for (let j = 0; j < rooms.length; j++) {
 		if (i != j) {
 			// Horizontal paths
-			if (rooms[i].y > rooms[j].y && rooms[i].y < (rooms[j].y + rooms[j].h)) {
-				let y = rooms[i].y + 1;
+			if (between(rooms[i].y, rooms[j].y, rooms[j].y + rooms[j].h)) {
+				let y = rooms[i].y + Math.floor(rooms[i].h / 2);
 				for (let x = Math.min(rooms[i].x, rooms[j].x); x < Math.max(rooms[i].x, rooms[j].x); x++) {
-					map[y][x] = 1;
+					if (map[y-1][x] !== 1 && map[y+1][x] !== 1) {
+						map[y][x] = 1;
+					}
 				}
 			}
 
 			// Vertical paths
-			if (rooms[i].x > rooms[j].x && rooms[i].x < (rooms[j].x + rooms[j].w)) {
-				let x = rooms[i].x + 1;
+			if (between(rooms[i].x, rooms[j].x, rooms[j].x + rooms[j].w)) {
+				let x = rooms[i].x + Math.floor(rooms[i].w / 2);
 				for (let y = Math.min(rooms[i].y, rooms[j].y); y < Math.max(rooms[i].y, rooms[j].y); y++) {
-					map[y][x] = 1;
+					if (map[y][x+1] !== 1 && map[y][x-1] !== 1) {
+						map[y][x] = 1;
+					}
 				}
 			}
 		}
+	}
+}
+
+// Door generating
+for (let row = 1; row < SIZE - 1; row++) {
+	for (let col = 1; col < SIZE - 1; col++) {
+		if (map[row][col] === 1 && map[row-1][col] === 1 && map[row+1][col] === 1 && map[row][col+1] === 1 && map[row][col-1] === 1) {
+            if (map[row-1][col-1] === 0 || map[row-1][col+1] === 0 || map[row+1][col-1] === 0 || map[row+1][col+1] === 0) {
+            	if (rooms.some(room => point_within_room({ x: col, y: row }, room))) {
+                	map[row][col] = 8;
+            	}
+            }
+        }
 	}
 }
 
@@ -92,7 +114,7 @@ map[out_y][out_x] = 3;
 
 const rc = rough.canvas(document.getElementById("canvas"));
 
-const CANVAS_SIZE = 800;
+const CANVAS_SIZE = 900;
 const CELL_SIZE = CANVAS_SIZE / SIZE;
 
 for (let i = 0; i <= SIZE; i++) {
@@ -109,12 +131,6 @@ for (let i = 0; i <= SIZE; i++) {
 for (let row = 0; row < SIZE; row++) {
 	for (let col = 0; col < SIZE; col++) {
 		if (map[row][col] === 1) {
-			rc.rectangle(col * CELL_SIZE, row * CELL_SIZE, CELL_SIZE, CELL_SIZE, {
-				fill: '#e48126',
-				fillStyle: 'dots',
-				strokeWidth: 5,
-				stroke: 'transparent'
-			});
 			if (map[row][col-1] === 0) {
 				rc.rectangle(col * CELL_SIZE - 20, row * CELL_SIZE, 20, CELL_SIZE, {
 					fill: '#703907',
@@ -156,12 +172,88 @@ for (let row = 0; row < SIZE; row++) {
 				});
 			}
 		} else {
-			rc.rectangle(col * CELL_SIZE, row * CELL_SIZE, CELL_SIZE, CELL_SIZE, {
-				fill: '#703907',
-				fillStyle: 'cross-hatch',
-				strokeWidth: 1,
-				stroke: 'transparent'
-			});
+			if (map[row][col] === 8) {
+				// Door to up
+				if (map[row-1][col-1] === 0 && map[row-1][col+1] === 0) {
+					// closed
+					rc.rectangle(col * CELL_SIZE, row * CELL_SIZE - CELL_SIZE / 4, CELL_SIZE, CELL_SIZE / 4, {
+						fill: '#9b0d0344',
+						fillStyle: 'cross-hatch',
+						stroke: '#9b0d0344',
+						strokeWidth: 2
+					});
+					// open
+					rc.rectangle(col * CELL_SIZE + CELL_SIZE - CELL_SIZE / 4, row * CELL_SIZE, CELL_SIZE / 4, CELL_SIZE, {
+						fill: '#9b0d03',
+						fillStyle: 'cross-hatch',
+						stroke: '#9b0d03',
+						strokeWidth: 2
+					});
+				}
+				// Door to down
+				if (map[row+1][col+1] === 0 && map[row+1][col-1] === 0) {
+					// closed
+					rc.rectangle(col * CELL_SIZE, row * CELL_SIZE + CELL_SIZE - CELL_SIZE / 4, CELL_SIZE, CELL_SIZE / 4, {
+						fill: '#9b0d0344',
+						fillStyle: 'cross-hatch',
+						stroke: '#9b0d0344',
+						strokeWidth: 2
+					});
+					// open
+					rc.rectangle(col * CELL_SIZE, row * CELL_SIZE, CELL_SIZE / 4, CELL_SIZE, {
+						fill: '#9b0d03',
+						fillStyle: 'cross-hatch',
+						stroke: '#9b0d03',
+						strokeWidth: 2
+					});
+				}
+				// Door to left
+				if (map[row+1][col-1] === 0 && map[row-1][col-1] === 0) {
+					// closed
+					rc.rectangle(col * CELL_SIZE, row * CELL_SIZE, CELL_SIZE / 4, CELL_SIZE, {
+						fill: '#9b0d0344',
+						fillStyle: 'cross-hatch',
+						stroke: '#9b0d0344',
+						strokeWidth: 2
+					});
+					// open
+					rc.rectangle(col * CELL_SIZE, row * CELL_SIZE, CELL_SIZE, CELL_SIZE / 4, {
+						fill: '#9b0d03',
+						fillStyle: 'cross-hatch',
+						stroke: '#9b0d03',
+						strokeWidth: 2
+					});
+				}
+				// Door to right
+				if (map[row+1][col+1] === 0 && map[row-1][col+1] === 0) {
+					// closed
+					rc.rectangle(col * CELL_SIZE + CELL_SIZE, row * CELL_SIZE, CELL_SIZE / 4, CELL_SIZE, {
+						fill: '#9b0d0344',
+						fillStyle: 'cross-hatch',
+						stroke: '#9b0d0344',
+						strokeWidth: 2
+					});
+					// open
+					rc.rectangle(col * CELL_SIZE, row * CELL_SIZE + CELL_SIZE - CELL_SIZE / 4, CELL_SIZE, CELL_SIZE / 4, {
+						fill: '#9b0d03',
+						fillStyle: 'cross-hatch',
+						stroke: '#9b0d03',
+						strokeWidth: 2
+					});
+				}
+			} else if (map[row][col] === 2) {
+				// Stair Up
+			} else if (map[row][col] === 3) {
+				// Stair Down
+			} else {
+				// Unwalkable
+				rc.rectangle(col * CELL_SIZE, row * CELL_SIZE, CELL_SIZE, CELL_SIZE, {
+					fill: '#703907',
+					fillStyle: 'cross-hatch',
+					strokeWidth: 1,
+					stroke: 'transparent'
+				});
+			}
 		}
 	}
 }
