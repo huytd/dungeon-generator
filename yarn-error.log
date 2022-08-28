@@ -1,8 +1,8 @@
 Arguments: 
-  /usr/local/bin/node /usr/local/bin/yarn build
+  /usr/local/bin/node /usr/local/bin/yarn add @types/roughjs
 
 PATH: 
-  /Users/htran@tripactions.com/.cabal/bin:/usr/local/opt/gettext/bin:/usr/local/opt/ruby/bin:/Users/htran@tripactions.com/.fzf/bin:/Applications/Sublime Text.app/Contents/SharedSupport/bin:/Users/htran@tripactions.com/go/bin:/Users/htran@tripactions.com/sdk/go1.18beta2/bin:/Users/htran@tripactions.com/.cargo/bin:/usr/local/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/Apple/usr/bin:/usr/local/go/bin:/usr/local/munki:/Users/htran@tripactions.com/.ghcup/bin
+  /Users/htran@tripactions.com/.cabal/bin:/usr/local/opt/gettext/bin:/usr/local/opt/ruby/bin:/Users/htran@tripactions.com/.fzf/bin:/Applications/Sublime Text.app/Contents/SharedSupport/bin:/Users/htran@tripactions.com/go/bin:/Users/htran@tripactions.com/sdk/go1.18beta2/bin:/Users/htran@tripactions.com/.cargo/bin:/usr/local/bin:/Users/htran@tripactions.com/.cabal/bin:/Applications/Sublime Text.app/Contents/SharedSupport/bin:/Users/htran@tripactions.com/go/bin:/Users/htran@tripactions.com/sdk/go1.18beta2/bin:/Users/htran@tripactions.com/.cargo/bin:/usr/local/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/Apple/usr/bin:/usr/local/go/bin:/usr/local/munki:/Users/htran@tripactions.com/.ghcup/bin:/Users/htran@tripactions.com/.ghcup/bin
 
 Yarn version: 
   1.22.17
@@ -14,22 +14,26 @@ Platform:
   darwin x64
 
 Trace: 
-  SyntaxError: /Users/htran@tripactions.com/code/play/algo-playground/cpp/dungeon/package.json: Unexpected token } in JSON at position 180
-      at JSON.parse (<anonymous>)
-      at /usr/local/lib/node_modules/yarn/lib/cli.js:1625:59
-      at Generator.next (<anonymous>)
-      at step (/usr/local/lib/node_modules/yarn/lib/cli.js:310:30)
-      at /usr/local/lib/node_modules/yarn/lib/cli.js:321:13
+  Error: https://registry.yarnpkg.com/@types%2froughjs: Not found
+      at Request.params.callback [as _callback] (/usr/local/lib/node_modules/yarn/lib/cli.js:67029:18)
+      at Request.self.callback (/usr/local/lib/node_modules/yarn/lib/cli.js:140883:22)
+      at Request.emit (node:events:390:28)
+      at Request.<anonymous> (/usr/local/lib/node_modules/yarn/lib/cli.js:141855:10)
+      at Request.emit (node:events:390:28)
+      at IncomingMessage.<anonymous> (/usr/local/lib/node_modules/yarn/lib/cli.js:141777:12)
+      at Object.onceWrapper (node:events:509:28)
+      at IncomingMessage.emit (node:events:402:35)
+      at endReadableNT (node:internal/streams/readable:1343:12)
+      at processTicksAndRejections (node:internal/process/task_queues:83:21)
 
 npm manifest: 
   {
     "name": "dungeon",
     "version": "1.0.0",
-    "main": "index.js",
     "license": "MIT",
     "scripts": {
       "dev": "parcel ./index.html",
-      "build": "parcel build ./index.html",
+      "build": "parcel build ./index.html"
     },
     "dependencies": {
       "parcel": "^2.7.0",
