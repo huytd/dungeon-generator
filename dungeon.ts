@@ -7,8 +7,23 @@ interface Room {
 	h: number;
 }
 
+export enum Tile {
+    Wall = 0,
+    Floor = 1,
+    Door = 8,
+    StairUp = 2,
+    StairDown = 3
+};
+
+export enum TileVisibility {
+    Unexplored = 0,
+    Seen = 1,
+    Visible = 2
+};
+
 interface GeneratedMap {
-	map: number[][];
+	map: Tile[][];
+    fog: TileVisibility[][];
 	rooms: Room[];
 }
 
@@ -56,8 +71,9 @@ const point_within_room = (point: { x: number, y: number }, room: Room) => {
 };
 
 export const generate_map = (): GeneratedMap => {
-	const map = Array(SIZE).fill(0).map(_ => Array(SIZE).fill(0));
-	const rooms = [];
+	const map = Array(SIZE).fill(Tile.Wall).map(_ => Array(SIZE).fill(Tile.Wall));
+	const fog = Array(SIZE).fill(TileVisibility.Unexplored).map(_ => Array(SIZE).fill(TileVisibility.Unexplored));
+	const rooms: Room[] = [];
 
 	// Placing rooms randomly
 	while (rooms.length < ROOM_COUNT) {
@@ -73,7 +89,6 @@ export const generate_map = (): GeneratedMap => {
 	}
 
 	// Build corridors
-	const connectedList = [];
 	for (let i = 0; i < rooms.length; i++) {
 		for (let j = 0; j < rooms.length; j++) {
 			if (i != j) {
@@ -81,8 +96,8 @@ export const generate_map = (): GeneratedMap => {
 				if (between(rooms[i].y, rooms[j].y, rooms[j].y + rooms[j].h)) {
 					let y = rooms[i].y + Math.floor(rooms[i].h / 2);
 					for (let x = Math.min(rooms[i].x, rooms[j].x); x < Math.max(rooms[i].x, rooms[j].x); x++) {
-						if (map[y-1][x] !== 1 && map[y+1][x] !== 1) {
-							map[y][x] = 1;
+						if (map[y-1][x] !== Tile.Floor && map[y+1][x] !== Tile.Floor) {
+							map[y][x] = Tile.Floor;
 						}
 					}
 				}
@@ -91,8 +106,8 @@ export const generate_map = (): GeneratedMap => {
 				if (between(rooms[i].x, rooms[j].x, rooms[j].x + rooms[j].w)) {
 					let x = rooms[i].x + Math.floor(rooms[i].w / 2);
 					for (let y = Math.min(rooms[i].y, rooms[j].y); y < Math.max(rooms[i].y, rooms[j].y); y++) {
-						if (map[y][x+1] !== 1 && map[y][x-1] !== 1) {
-							map[y][x] = 1;
+						if (map[y][x+1] !== Tile.Floor && map[y][x-1] !== Tile.Floor) {
+							map[y][x] = Tile.Floor;
 						}
 					}
 				}
@@ -103,10 +118,10 @@ export const generate_map = (): GeneratedMap => {
 	// Door generating
 	for (let row = 1; row < SIZE - 1; row++) {
 		for (let col = 1; col < SIZE - 1; col++) {
-			if (map[row][col] === 1 && map[row-1][col] === 1 && map[row+1][col] === 1 && map[row][col+1] === 1 && map[row][col-1] === 1) {
-            	if (map[row-1][col-1] === 0 || map[row-1][col+1] === 0 || map[row+1][col-1] === 0 || map[row+1][col+1] === 0) {
+			if (map[row][col] === Tile.Floor && map[row-1][col] === Tile.Floor && map[row+1][col] === Tile.Floor && map[row][col+1] === Tile.Floor && map[row][col-1] === Tile.Floor) {
+            	if (map[row-1][col-1] === Tile.Wall || map[row-1][col+1] === Tile.Wall || map[row+1][col-1] === Tile.Wall || map[row+1][col+1] === Tile.Wall) {
             		if (rooms.some(room => point_within_room({ x: col, y: row }, room))) {
-                		map[row][col] = 8;
+                		map[row][col] = Tile.Door;
             		}
             	}
         	}
@@ -119,8 +134,8 @@ export const generate_map = (): GeneratedMap => {
 	const out_x = rooms[ROOM_COUNT-1].x + Math.floor(rooms[ROOM_COUNT-1].w/2);
 	const out_y = rooms[ROOM_COUNT-1].y + Math.floor(rooms[ROOM_COUNT-1].h/2);
 
-	map[in_y][in_x] = 2;
-	map[out_y][out_x] = 3;
+	map[in_y][in_x] = Tile.StairUp;
+	map[out_y][out_x] = Tile.StairDown;
 
-	return { map, rooms };
+	return { map, fog, rooms };
 };
